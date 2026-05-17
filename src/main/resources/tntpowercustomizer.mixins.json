@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "package": "com.modforge.tntpowercustomizer.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "TntpowercustomizerModMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 0
+  },
+  "minVersion": "0.8"
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "tntpowercustomizer",
+  "version": "${version}",
+  "name": "TNTPowerCustomizer",
+  "description": "Server-side Fabric mod adding an operator-only /tntpower command to globally scale vanilla TNT explosion power via a mixin hook.",
+  "authors": [
+    "SspicyGamer"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/tntpowercustomizer/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.modforge.tntpowercustomizer.TntpowercustomizerMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "mixins": [
+    "tntpowercustomizer.mixins.json"
+  ]
+}
