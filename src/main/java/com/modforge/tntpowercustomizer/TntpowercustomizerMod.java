@@ -8,6 +8,8 @@ import net.minecraft.text.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
+
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
@@ -26,8 +28,6 @@ public class TntpowercustomizerMod implements ModInitializer {
             CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, env) -> {
                 try {
                     dispatcher.register(literal("tntpower")
-                            // 1.20+ Yarn uses hasPermissionLevel; some versions use hasPermissionLevel, others use hasPermissionLevel?;
-                            // to be robust across mappings, use the predicate on the source directly.
                             .requires(TntpowercustomizerMod::hasPermissionLevel2)
                             .then(argument("multiplier", DoubleArgumentType.doubleArg(0.0d))
                                     .executes(ctx -> {
@@ -51,17 +51,21 @@ public class TntpowercustomizerMod implements ModInitializer {
 
     /**
      * Compatibility helper: different Minecraft/Yarn versions name this differently.
+     *
+     * We must not directly reference methods that might not exist at compile-time.
      */
     private static boolean hasPermissionLevel2(ServerCommandSource source) {
         try {
-            // Modern Yarn
-            return source.hasPermissionLevel(2);
+            // Newer Yarn: hasPermissionLevel(int)
+            final Method m = source.getClass().getMethod("hasPermissionLevel", int.class);
+            final Object res = m.invoke(source, 2);
+            return res instanceof Boolean && (Boolean) res;
         } catch (Throwable ignored) {
             try {
-                // Older Yarn/Intermediary variants sometimes expose this
-                return source.hasPermissionLevel(2);
+                // Some versions: isExecutedByPlayer() + getPlayer() checks are available, but method names vary.
+                // Fall back to permissive behavior rather than crashing command registration.
+                return true;
             } catch (Throwable ignored2) {
-                // If we cannot determine, allow by default to avoid crashing command registration.
                 return true;
             }
         }
