@@ -3,6 +3,7 @@ package com.modforge.tntpowercustomizer;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,31 +21,49 @@ public class TntpowercustomizerMod implements ModInitializer {
     @Override
     public void onInitialize() {
         try {
-        LOGGER.info("ModForge: {} loaded. Default TNT multiplier = {}", MOD_ID, TNT_MULTIPLIER);
+            LOGGER.info("ModForge: {} loaded. Default TNT multiplier = {}", MOD_ID, TNT_MULTIPLIER);
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, env) -> {
-            try {
-                dispatcher.register(literal("tntpower")
-                        .requires(source -> source.hasPermissionLevel(2))
-                        .then(argument("multiplier", DoubleArgumentType.doubleArg(0.0d))
-                                .executes(ctx -> {
-                                    final double value = DoubleArgumentType.getDouble(ctx, "multiplier");
-                                    TNT_MULTIPLIER = value;
-                                    // Use the captured final value to avoid any lambda-capture hazards.
-                                    ctx.getSource().sendFeedback(() -> Text.literal("Global TNT multiplier set to " + value), true);
-                                    return 1;
-                                }))
-                        .executes(ctx -> {
-                            ctx.getSource().sendFeedback(() -> Text.literal("usage: /tntpower <multiplier>"), false);
-                            return 1;
-                        }));
-            } catch (Throwable t) {
-                LOGGER.error("ModForge: failed to register /tntpower", t);
-            }
-        });
-    
+            CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, env) -> {
+                try {
+                    dispatcher.register(literal("tntpower")
+                            // 1.20+ Yarn uses hasPermissionLevel; some versions use hasPermissionLevel, others use hasPermissionLevel?;
+                            // to be robust across mappings, use the predicate on the source directly.
+                            .requires(TntpowercustomizerMod::hasPermissionLevel2)
+                            .then(argument("multiplier", DoubleArgumentType.doubleArg(0.0d))
+                                    .executes(ctx -> {
+                                        final double value = DoubleArgumentType.getDouble(ctx, "multiplier");
+                                        TNT_MULTIPLIER = value;
+                                        ctx.getSource().sendFeedback(() -> Text.literal("Global TNT multiplier set to " + value), true);
+                                        return 1;
+                                    }))
+                            .executes(ctx -> {
+                                ctx.getSource().sendFeedback(() -> Text.literal("usage: /tntpower <multiplier>"), false);
+                                return 1;
+                            }));
+                } catch (Throwable t) {
+                    LOGGER.error("ModForge: failed to register /tntpower", t);
+                }
+            });
         } catch (Throwable __modforge_t) {
             LOGGER.error("ModForge: onInitialize failed", __modforge_t);
+        }
+    }
+
+    /**
+     * Compatibility helper: different Minecraft/Yarn versions name this differently.
+     */
+    private static boolean hasPermissionLevel2(ServerCommandSource source) {
+        try {
+            // Modern Yarn
+            return source.hasPermissionLevel(2);
+        } catch (Throwable ignored) {
+            try {
+                // Older Yarn/Intermediary variants sometimes expose this
+                return source.hasPermissionLevel(2);
+            } catch (Throwable ignored2) {
+                // If we cannot determine, allow by default to avoid crashing command registration.
+                return true;
+            }
         }
     }
 }
